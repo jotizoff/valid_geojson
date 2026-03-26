@@ -1,0 +1,18 @@
+id: SP42-industrial-sanitary
+title: "Санитарный разрыв от производственной зоны до жилья"
+severity: error
+status: active
+refs: ["СП 42.13330.2016"]
+scope:
+  layer: industrial
+check:
+  type: min_distance_to_layer
+  target:
+    layer: building
+  threshold: 50
+  severity_policy:
+    warning_threshold_percent: 10
+message:
+  ru: "Производственная зона расположена слишком близко к жилой застройке"
+meta:
+  category: sanitary

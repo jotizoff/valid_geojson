@@ -1,0 +1,16 @@
+id: SP42-turnaround-area
+title: "Минимальная площадь разворотной площадки"
+severity: error
+status: active
+refs: ["СП пожарной безопасности"]
+scope:
+  layer: turnaround
+check:
+  type: area_min
+  threshold: 225
+  severity_policy:
+    warning_threshold_percent: 10
+message:
+  ru: "Разворотная площадка недостаточной площади"
+meta:
+  category: fire

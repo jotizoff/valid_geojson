@@ -1,0 +1,20 @@
+id: SP42-red-line-setback
+title: "Минимальный отступ от красной линии"
+severity: error
+status: active
+refs: ["СП 42.13330.2016"]
+scope:
+  layer: building
+  filter:
+    use: residential
+check:
+  type: min_distance_to_layer
+  target:
+    layer: red_line
+  threshold: 5
+  severity_policy:
+    warning_threshold_percent: 10
+message:
+  ru: "Жилое здание расположено слишком близко к красной линии"
+meta:
+  category: residential

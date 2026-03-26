@@ -1,0 +1,18 @@
+id: SP42-parking-distance
+title: "Парковка не ближе 10 м к зданиям"
+severity: warning
+status: active
+refs: ["СП"]
+scope:
+  layer: parking
+check:
+  type: min_distance_to_layer
+  target:
+    layer: building
+  threshold: 10
+  severity_policy:
+    warning_threshold_percent: 10
+message:
+  ru: "Парковка расположена слишком близко к зданиям"
+meta:
+  category: transport

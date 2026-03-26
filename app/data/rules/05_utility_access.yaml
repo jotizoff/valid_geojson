@@ -1,0 +1,18 @@
+id: SP42-utility-access
+title: "Доступ к инженерным сетям"
+severity: warning
+status: active
+refs: ["СП 42.13330.2016"]
+scope:
+  layer: building
+check:
+  type: max_distance_to_layer
+  target:
+    layer: network
+  threshold: 20
+  severity_policy:
+    warning_threshold_percent: 20
+message:
+  ru: "Здание слишком далеко от инженерных сетей"
+meta:
+  category: utilities

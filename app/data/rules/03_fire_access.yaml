@@ -1,0 +1,18 @@
+id: SP42-fire-access
+title: "Обеспечение подъезда пожарной техники"
+severity: error
+status: active
+refs: ["СП 42.13330.2016"]
+scope:
+  layer: building
+check:
+  type: max_distance_to_layer
+  target:
+    layer: road
+  threshold: 5
+  severity_policy:
+    warning_threshold_percent: 20
+message:
+  ru: "Нет доступа пожарной техники: здание слишком далеко от дороги"
+meta:
+  category: fire

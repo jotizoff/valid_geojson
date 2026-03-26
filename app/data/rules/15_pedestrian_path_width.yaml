@@ -1,0 +1,17 @@
+id: SP42-pedestrian-path-width
+title: "Минимальная ширина пешеходного пути"
+severity: warning
+status: active
+refs: ["СП 42.13330.2016"]
+scope:
+  layer: pedestrian_path
+check:
+  type: attribute_min
+  field: width
+  threshold: 2
+  severity_policy:
+    warning_threshold_percent: 10
+message:
+  ru: "Пешеходный путь имеет недостаточную ширину"
+meta:
+  category: transport

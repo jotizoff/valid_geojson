@@ -1,0 +1,18 @@
+id: SP42-playground-distance
+title: "Детская площадка не ближе 10 м к жилым зданиям"
+severity: warning
+status: active
+refs: ["СП 42.13330.2016"]
+scope:
+  layer: playground
+check:
+  type: min_distance_to_layer
+  target:
+    layer: building
+  threshold: 10
+  severity_policy:
+    warning_threshold_percent: 10
+message:
+  ru: "Детская площадка расположена слишком близко к жилому зданию"
+meta:
+  category: landscape

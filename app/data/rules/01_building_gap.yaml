@@ -1,0 +1,18 @@
+id: SP42-7.1-building-gap
+title: "Минимальный бытовой разрыв между жилыми зданиями"
+severity: warning
+status: active
+refs: ["СП 42.13330.2016 п. 7.1"]
+scope:
+  layer: building
+  filter:
+    use: residential
+check:
+  type: pair_min_distance
+  threshold: 15
+  severity_policy:
+    warning_threshold_percent: 10
+message:
+  ru: "Расстояние между жилыми зданиями меньше допустимого"
+meta:
+  category: residential

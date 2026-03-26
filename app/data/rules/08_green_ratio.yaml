@@ -1,0 +1,18 @@
+id: SP42-green-ratio
+title: "Минимальная доля озеленения территории"
+severity: warning
+status: active
+refs: ["СП 42.13330.2016"]
+scope:
+  layer: green
+check:
+  type: area_ratio_min
+  target:
+    layer: site_boundary
+  threshold: 0.25
+  severity_policy:
+    warning_threshold_percent: 10
+message:
+  ru: "Доля озеленения ниже нормативной"
+meta:
+  category: landscape

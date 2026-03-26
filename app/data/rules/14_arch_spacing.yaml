@@ -1,0 +1,16 @@
+id: SP42-arch-spacing
+title: "Максимальное расстояние между сквозными проездами"
+severity: warning
+status: active
+refs: ["СП пожарной безопасности"]
+scope:
+  layer: arch
+check:
+  type: max_distance_between_features
+  threshold: 300
+  severity_policy:
+    warning_threshold_percent: 10
+message:
+  ru: "Сквозные проезды расположены слишком редко"
+meta:
+  category: fire

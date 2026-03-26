@@ -1,0 +1,18 @@
+id: SP42-dog-area-distance
+title: "Площадка для выгула собак не ближе 40 м к жилым зданиям"
+severity: warning
+status: active
+refs: ["СП 42.13330.2016"]
+scope:
+  layer: dog_area
+check:
+  type: min_distance_to_layer
+  target:
+    layer: building
+  threshold: 40
+  severity_policy:
+    warning_threshold_percent: 10
+message:
+  ru: "Площадка для выгула собак расположена слишком близко к жилой застройке"
+meta:
+  category: landscape

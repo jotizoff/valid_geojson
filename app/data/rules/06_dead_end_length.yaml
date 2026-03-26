@@ -1,0 +1,19 @@
+id: SP42-dead-end-length
+title: "Максимальная длина тупикового проезда"
+severity: error
+status: active
+refs: ["СП пожарной безопасности"]
+scope:
+  layer: road
+  filter:
+    kind: dead_end
+check:
+  type: attribute_max
+  field: length
+  threshold: 150
+  severity_policy:
+    warning_threshold_percent: 10
+message:
+  ru: "Тупиковый проезд превышает допустимую длину"
+meta:
+  category: fire

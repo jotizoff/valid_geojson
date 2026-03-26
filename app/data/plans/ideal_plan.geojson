@@ -1,0 +1,522 @@
+{
+  "type": "FeatureCollection",
+  "name": "ideal_plan",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "site_1",
+        "layer": "site_boundary"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -20,
+              -20
+            ],
+            [
+              120,
+              -20
+            ],
+            [
+              120,
+              120
+            ],
+            [
+              -20,
+              120
+            ],
+            [
+              -20,
+              -20
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "green_1",
+        "layer": "green"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              50,
+              50
+            ],
+            [
+              110,
+              50
+            ],
+            [
+              110,
+              110
+            ],
+            [
+              50,
+              110
+            ],
+            [
+              50,
+              50
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "b1",
+        "layer": "building",
+        "use": "residential"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              10,
+              10
+            ],
+            [
+              0,
+              10
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "b2",
+        "layer": "building",
+        "use": "residential"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              30
+            ],
+            [
+              10,
+              30
+            ],
+            [
+              10,
+              40
+            ],
+            [
+              0,
+              40
+            ],
+            [
+              0,
+              30
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "road1",
+        "layer": "road",
+        "kind": "road",
+        "width": 6
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -10,
+            15
+          ],
+          [
+            20,
+            15
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "net1",
+        "layer": "network",
+        "kind": "water"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -10,
+            12
+          ],
+          [
+            20,
+            12
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "red_line_1",
+        "layer": "red_line"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -10,
+            -10
+          ],
+          [
+            20,
+            -10
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "turnaround_1",
+        "layer": "turnaround"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              30,
+              0
+            ],
+            [
+              45,
+              0
+            ],
+            [
+              45,
+              15
+            ],
+            [
+              30,
+              15
+            ],
+            [
+              30,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "playground_1",
+        "layer": "playground"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              25,
+              25
+            ],
+            [
+              35,
+              25
+            ],
+            [
+              35,
+              35
+            ],
+            [
+              25,
+              35
+            ],
+            [
+              25,
+              25
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "dog_1",
+        "layer": "dog_area"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              60,
+              0
+            ],
+            [
+              70,
+              0
+            ],
+            [
+              70,
+              10
+            ],
+            [
+              60,
+              10
+            ],
+            [
+              60,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "sport_1",
+        "layer": "sport_area"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              25,
+              50
+            ],
+            [
+              35,
+              50
+            ],
+            [
+              35,
+              60
+            ],
+            [
+              25,
+              60
+            ],
+            [
+              25,
+              50
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "industrial_1",
+        "layer": "industrial"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              80,
+              0
+            ],
+            [
+              100,
+              0
+            ],
+            [
+              100,
+              20
+            ],
+            [
+              80,
+              20
+            ],
+            [
+              80,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "parking_1",
+        "layer": "parking"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              25,
+              -5
+            ],
+            [
+              35,
+              -5
+            ],
+            [
+              35,
+              5
+            ],
+            [
+              25,
+              5
+            ],
+            [
+              25,
+              -5
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "arch_1",
+        "layer": "arch"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              0,
+              80
+            ],
+            [
+              4,
+              80
+            ],
+            [
+              4,
+              84
+            ],
+            [
+              0,
+              84
+            ],
+            [
+              0,
+              80
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "arch_2",
+        "layer": "arch"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              150,
+              80
+            ],
+            [
+              154,
+              80
+            ],
+            [
+              154,
+              84
+            ],
+            [
+              150,
+              84
+            ],
+            [
+              150,
+              80
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "path_1",
+        "layer": "pedestrian_path",
+        "width": 2.5
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -10,
+            50
+          ],
+          [
+            40,
+            50
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "dead_end_1",
+        "layer": "road",
+        "kind": "dead_end",
+        "width": 6
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            50,
+            20
+          ],
+          [
+            80,
+            20
+          ]
+        ]
+      }
+    }
+  ]
+}

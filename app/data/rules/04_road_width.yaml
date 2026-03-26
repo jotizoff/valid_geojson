@@ -1,0 +1,19 @@
+id: SP42-road-width
+title: "Минимальная ширина проезда"
+severity: warning
+status: active
+refs: ["СП 42.13330.2016"]
+scope:
+  layer: road
+  filter:
+    kind: [service, road, street, dead_end]
+check:
+  type: attribute_min
+  field: width
+  threshold: 6
+  severity_policy:
+    warning_threshold_percent: 15
+message:
+  ru: "Ширина проезда меньше нормативной"
+meta:
+  category: transport

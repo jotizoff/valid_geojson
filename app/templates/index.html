@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Urban Plan IDE UI v6.4</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="actions">
+        <button id="loadDemoBtn" class="btn" type="button">Загрузить демо</button>
+        <input id="planFileInput" type="file" accept=".geojson,.json,application/geo+json,application/json" hidden />
+        <button id="uploadPlanBtn" class="btn" type="button">Загрузить GeoJSON</button>
+        <button id="validateBtn" class="btn btn-primary" type="button">Проверить текущий план</button>
+        <button id="openBatchBtn" class="btn" type="button">Batch</button>
+        <button id="downloadReportBtn" class="btn" type="button">Скачать JSON-отчёт</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container layout">
+    <aside class="sidebar">
+      <section class="card">
+        <div class="card-header"><h2>Сводка</h2><p>Слои, правила, нарушения</p></div>
+        <div class="card-body">
+          <div class="stats">
+            <div class="stat"><div class="label">Применимых правил</div><div id="applicableRulesCount" class="value">0</div></div>
+            <div class="stat"><div class="label">Нарушений</div><div id="violationsCount" class="value">0</div></div>
+            <div class="stat"><div class="label">Warnings</div><div id="warningsCount" class="value value-warning">0</div></div>
+            <div class="stat"><div class="label">Errors</div><div id="errorsCount" class="value value-error">0</div></div>
+            <div class="stat"><div class="label">Мало данных</div><div id="insufficientCount" class="value value-muted">0</div></div>
+            <div class="stat"><div class="label">Пройдено</div><div id="passedCount" class="value value-ok">0</div></div>
+          </div>
+          <div id="layersList" class="list"></div>
+        </div>
+      </section>
+
+      <section class="card" id="batchSidebar" style="display:none;">
+        <div class="card-header"><h2>Batch планы</h2><p>Набор файлов для массовой проверки</p></div>
+        <div class="card-body">
+          <div id="batchPlansList" class="list compact-list"></div>
+        </div>
+      </section>
+    </aside>
+
+    <main class="main">
+      <div class="tabs">
+        <button class="tab active" data-tab="plan">План</button>
+        <button class="tab" data-tab="rules">YAML</button>
+        <button class="tab" data-tab="visual">Визуализация</button>
+        <button class="tab" data-tab="result">Результат</button>
+        <button class="tab batch-tab" data-tab="batch" style="display:none;">Batch</button>
+      </div>
+
+      <section id="tab-plan" class="card tab-panel active">
+        <div class="card-header"><h2>GeoJSON план</h2><p>Редактор входного градостроительного плана</p></div>
+        <div class="card-body"><textarea id="planEditor" class="editor"></textarea></div>
+      </section>
+
+      <section id="tab-rules" class="card tab-panel">
+        <div class="card-header"><h2>YAML правила</h2><p>Содержимое собрано из отдельных файлов rules/*.yaml</p></div>
+        <div class="card-body"><textarea id="rulesEditor" class="editor"></textarea></div>
+      </section>
+
+      <section id="tab-visual" class="card tab-panel">
+        <div class="card-header"><h2>Визуализация плана</h2><p>SVG-представление текущего GeoJSON с подсветкой нарушений</p></div>
+        <div class="card-body">
+          <div class="legend">
+            <span class="badge building">building</span>
+            <span class="badge road">road</span>
+            <span class="badge network">network</span>
+            <span class="badge redline">red_line</span>
+            <span class="badge green">green</span>
+            <span class="badge play">playground</span>
+            <span class="badge warning">warning highlight</span>
+            <span class="badge error">error highlight</span>
+          </div>
+          <div id="highlightSummary" class="note">Сначала запусти проверку, чтобы увидеть подсветку нарушений.</div>
+          <div id="visualContainer" class="visual-container"></div>
+        </div>
+      </section>
+
+      <section id="tab-result" class="card tab-panel">
+        <div class="card-header"><h2>Результаты проверки</h2><p>Только ошибки и предупреждения. Нажми на строку для просмотра на плане.</p></div>
+        <div class="card-body">
+          <div class="legend">
+            <span class="badge warning">warning</span>
+            <span class="badge error">error</span>
+          </div>
+          <div class="table-wrap"><table>
+            <thead>
+              <tr>
+                <th>Severity</th>
+                <th>Rule</th>
+                <th>Objects</th>
+                <th>Fact</th>
+                <th>Norm</th>
+                <th>Deviation</th>
+                <th>Причина</th>
+              </tr>
+            </thead>
+            <tbody id="violationsTableBody"><tr><td colspan="7">Пока нет данных.</td></tr></tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <section id="tab-batch" class="card tab-panel">
+        <div class="card-header"><h2>Batch-автотесты</h2><p>Отдельный режим массовой проверки</p></div>
+        <div class="card-body">
+          <div class="batch-toolbar">
+            <button id="exitBatchBtn" class="btn" type="button">← Назад</button>
+            <input id="batchPlanInput" type="file" accept=".geojson,.json,application/geo+json,application/json" hidden multiple />
+            <button id="uploadBatchBtn" class="btn" type="button">Загрузить несколько планов</button>
+            <button id="runBatchBtn" class="btn btn-primary" type="button">Запустить batch-автотест</button>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>План</th><th>Warnings</th><th>Errors</th><th>Мало данных</th><th>Пройдено</th><th>Нарушений всего</th></tr></thead><tbody id="batchResultsBody"><tr><td colspan="6">Пока нет данных.</td></tr></tbody></table></div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="details">
+      <section class="card">
+        <div class="card-header"><h2>Правила</h2><p>Каталог правил, категории и поиск</p></div>
+        <div class="card-body">
+          <input id="ruleSearch" class="input" placeholder="Поиск по ID, названию, СП" />
+          <select id="categoryFilter" class="input">
+            <option value="">Все категории</option>
+            <option value="residential">Жилая застройка</option>
+            <option value="fire">Пожарная безопасность</option>
+            <option value="transport">Транспорт</option>
+            <option value="utilities">Инженерные сети</option>
+            <option value="landscape">Благоустройство</option>
+            <option value="sanitary">Санитарные требования</option>
+          </select>
+          <div id="rulesList" class="list"></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <div id="ruleModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" id="ruleModalBackdrop"></div>
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="ruleModalTitle">
+      <div class="modal-header">
+        <h2 id="ruleModalTitle">Детали правила</h2>
+        <button id="closeRuleModalBtn" class="btn" type="button">Закрыть</button>
+      </div>
+      <div class="modal-body">
+        <pre id="ruleDetails" class="pre">Нет выбранного правила.</pre>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="errorFocusModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" id="errorFocusBackdrop"></div>
+    <div class="modal-dialog modal-large" role="dialog" aria-modal="true" aria-labelledby="errorFocusTitle">
+      <div class="modal-header">
+        <h2 id="errorFocusTitle">Детали ошибки</h2>
+        <button id="closeErrorFocusBtn" class="btn" type="button">Закрыть</button>
+      </div>
+      <div class="modal-body">
+        <div id="errorFocusMeta" class="note">Нет данных.</div>
+        <div id="errorFocusVisual" class="visual-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
