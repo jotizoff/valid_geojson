@@ -3,15 +3,17 @@ title: "Парковка не ближе 10 м к зданиям"
 severity: warning
 status: active
 refs: ["СП"]
+ignore_if:
+  intersects: true
 scope:
   layer: parking
 check:
   type: min_distance_to_layer
   target:
     layer: building
-  threshold: 10
+  threshold: 8
   severity_policy:
-    warning_threshold_percent: 10
+    warning_threshold_percent: 20
 message:
   ru: "Парковка расположена слишком близко к зданиям"
 meta:

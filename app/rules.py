@@ -15,6 +15,7 @@ class Rule:
     scope: dict[str, Any]
     check: dict[str, Any]
     message: dict[str, str]
+    ignore_if: dict[str, Any] = field(default_factory=dict)
     meta: dict[str, Any] = field(default_factory=dict)
 
 def _normalize_rule(item: dict[str, Any]) -> Rule:
@@ -28,6 +29,7 @@ def _normalize_rule(item: dict[str, Any]) -> Rule:
         scope=item.get("scope", {}),
         check=item.get("check", {}),
         message=item.get("message", {"ru": item.get("title", item["id"])}),
+        ignore_if=item.get("ignore_if", {}),
         meta=item.get("meta", {}),
     )
 
@@ -64,6 +66,7 @@ def dump_rules_to_yaml(rules: list[Rule]) -> str:
             "scope": r.scope,
             "check": r.check,
             "message": r.message,
+            "ignore_if": r.ignore_if,
             "meta": r.meta,
         })
     return yaml.safe_dump(raw, allow_unicode=True, sort_keys=False)

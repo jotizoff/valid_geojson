@@ -3,15 +3,17 @@ title: "Площадка для выгула собак не ближе 40 м к
 severity: warning
 status: active
 refs: ["СП 42.13330.2016"]
+ignore_if:
+  intersects: true
 scope:
   layer: dog_area
 check:
   type: min_distance_to_layer
   target:
     layer: building
-  threshold: 40
+  threshold: 25
   severity_policy:
-    warning_threshold_percent: 10
+    warning_threshold_percent: 25
 message:
   ru: "Площадка для выгула собак расположена слишком близко к жилой застройке"
 meta:

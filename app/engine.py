@@ -65,19 +65,22 @@ def _distance(a: PlanFeature, b: PlanFeature) -> float:
 def _classify_below_min(value: float, threshold: float, policy: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     shortfall = max(0.0, float(threshold) - float(value))
     deviation_percent = round((shortfall / float(threshold)) * 100.0, 3) if threshold > 0 else 0.0
-    warning_threshold_percent = float(policy.get("warning_threshold_percent", 10.0))
+    warning_threshold_percent = float(policy.get("warning_threshold_percent", 20.0))
     severity = "warning" if deviation_percent <= warning_threshold_percent else "error"
-    return severity, {"direction":"below_min","shortfall":round(shortfall,3),"deviation_percent":deviation_percent}
+    return severity, {"direction": "below_min", "shortfall": round(shortfall, 3), "deviation_percent": deviation_percent}
 
 def _classify_above_max(value: float, threshold: float, policy: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     overflow = max(0.0, float(value) - float(threshold))
     deviation_percent = round((overflow / float(threshold)) * 100.0, 3) if threshold > 0 else 0.0
-    warning_threshold_percent = float(policy.get("warning_threshold_percent", 10.0))
+    warning_threshold_percent = float(policy.get("warning_threshold_percent", 20.0))
     severity = "warning" if deviation_percent <= warning_threshold_percent else "error"
-    return severity, {"direction":"above_max","overflow":round(overflow,3),"deviation_percent":deviation_percent}
+    return severity, {"direction": "above_max", "overflow": round(overflow, 3), "deviation_percent": deviation_percent}
 
 def _insufficient(rule: Rule, reason: str, details: dict[str, Any] | None = None):
     return [], RuleResult(rule.rule_id, rule.title, "insufficient_data", "insufficient_data", reason, rule.refs, [], details or {})
+
+def _not_applicable(rule: Rule, reason: str):
+    return [], RuleResult(rule.rule_id, rule.title, "not_applicable", "info", reason, rule.refs, [], {})
 
 def _passed(rule: Rule):
     return [], RuleResult(rule.rule_id, rule.title, "passed", "info", None, rule.refs, [], {})
@@ -100,8 +103,20 @@ def _numeric_attr(item: PlanFeature, field: str):
     except (TypeError, ValueError):
         return None
 
+def _nearest_valid_target(item: PlanFeature, targets: list[PlanFeature], rule: Rule):
+    ignore_if = rule.ignore_if or {}
+    skip_intersections = bool(ignore_if.get("intersects", False))
+    candidates = sorted(targets, key=lambda other: _distance(item, other))
+    for other in candidates:
+        if skip_intersections and item.geometry.intersects(other.geometry):
+            continue
+        return other
+    return None
+
 def _check_pair_min_distance(rule: Rule, plan: Plan):
     items = _select_features(plan, rule.scope)
+    if len(items) == 0:
+        return _not_applicable(rule, "В плане отсутствуют объекты целевого слоя")
     if len(items) < 2:
         return _insufficient(rule, "Недостаточно объектов для парной проверки")
     threshold = float(rule.check["threshold"])
@@ -111,52 +126,58 @@ def _check_pair_min_distance(rule: Rule, plan: Plan):
         for j, right in enumerate(items):
             if j <= i:
                 continue
+            if rule.ignore_if.get("intersects") and left.geometry.intersects(right.geometry):
+                continue
             value = _distance(left, right)
             if value < threshold:
                 sev, metrics = _classify_below_min(value, threshold, policy)
-                violations.append(Violation(rule.rule_id, rule.title, sev, [left.feature_id, right.feature_id], round(value,3), threshold, rule.message.get("ru", rule.title), rule.refs, metrics))
+                violations.append(Violation(rule.rule_id, rule.title, sev, [left.feature_id, right.feature_id], round(value, 3), threshold, rule.message.get("ru", rule.title), rule.refs, metrics))
     return _failed(rule, violations) if violations else _passed(rule)
 
 def _check_min_distance_to_layer(rule: Rule, plan: Plan):
     scope_items = _select_features(plan, rule.scope)
     target_items = _select_features(plan, rule.check["target"])
     if not scope_items:
-        return _insufficient(rule, "В плане нет объектов области проверки")
+        return _not_applicable(rule, "В плане отсутствуют объекты области проверки")
     if not target_items:
-        return _insufficient(rule, "В плане нет целевых объектов для сравнения")
+        return _not_applicable(rule, "В плане отсутствует целевой слой для сравнения")
     threshold = float(rule.check["threshold"])
     policy = rule.check.get("severity_policy", {})
     violations = []
     for item in scope_items:
-        nearest = min(target_items, key=lambda other: _distance(item, other))
+        nearest = _nearest_valid_target(item, target_items, rule)
+        if nearest is None:
+            continue
         value = _distance(item, nearest)
         if value < threshold:
             sev, metrics = _classify_below_min(value, threshold, policy)
-            violations.append(Violation(rule.rule_id, rule.title, sev, [item.feature_id, nearest.feature_id], round(value,3), threshold, rule.message.get("ru", rule.title), rule.refs, metrics))
+            violations.append(Violation(rule.rule_id, rule.title, sev, [item.feature_id, nearest.feature_id], round(value, 3), threshold, rule.message.get("ru", rule.title), rule.refs, metrics))
     return _failed(rule, violations) if violations else _passed(rule)
 
 def _check_max_distance_to_layer(rule: Rule, plan: Plan):
     scope_items = _select_features(plan, rule.scope)
     target_items = _select_features(plan, rule.check["target"])
     if not scope_items:
-        return _insufficient(rule, "В плане нет объектов области проверки")
+        return _not_applicable(rule, "В плане отсутствуют объекты области проверки")
     if not target_items:
-        return _insufficient(rule, "В плане нет целевых объектов для сравнения")
+        return _not_applicable(rule, "В плане отсутствует целевой слой для сравнения")
     threshold = float(rule.check["threshold"])
     policy = rule.check.get("severity_policy", {})
     violations = []
     for item in scope_items:
-        nearest = min(target_items, key=lambda other: _distance(item, other))
+        nearest = _nearest_valid_target(item, target_items, rule)
+        if nearest is None:
+            continue
         value = _distance(item, nearest)
         if value > threshold:
             sev, metrics = _classify_above_max(value, threshold, policy)
-            violations.append(Violation(rule.rule_id, rule.title, sev, [item.feature_id, nearest.feature_id], round(value,3), threshold, rule.message.get("ru", rule.title), rule.refs, metrics))
+            violations.append(Violation(rule.rule_id, rule.title, sev, [item.feature_id, nearest.feature_id], round(value, 3), threshold, rule.message.get("ru", rule.title), rule.refs, metrics))
     return _failed(rule, violations) if violations else _passed(rule)
 
 def _check_attribute_min(rule: Rule, plan: Plan):
     items = _select_features(plan, rule.scope)
     if not items:
-        return _insufficient(rule, "Нет объектов для проверки")
+        return _not_applicable(rule, "В плане отсутствуют объекты целевого слоя")
     field = rule.check["field"]
     threshold = float(rule.check["threshold"])
     policy = rule.check.get("severity_policy", {})
@@ -168,7 +189,7 @@ def _check_attribute_min(rule: Rule, plan: Plan):
             continue
         if value < threshold:
             sev, metrics = _classify_below_min(value, threshold, policy)
-            violations.append(Violation(rule.rule_id, rule.title, sev, [item.feature_id], round(value,3), threshold, rule.message.get("ru", rule.title), rule.refs, {"field":field, **metrics}))
+            violations.append(Violation(rule.rule_id, rule.title, sev, [item.feature_id], round(value, 3), threshold, rule.message.get("ru", rule.title), rule.refs, {"field": field, **metrics}))
     if missing and not violations:
         return _insufficient(rule, f"Не хватает атрибута {field}")
     return _failed(rule, violations) if violations else _passed(rule)
@@ -176,7 +197,7 @@ def _check_attribute_min(rule: Rule, plan: Plan):
 def _check_attribute_max(rule: Rule, plan: Plan):
     items = _select_features(plan, rule.scope)
     if not items:
-        return _insufficient(rule, "Нет объектов для проверки")
+        return _not_applicable(rule, "В плане отсутствуют объекты целевого слоя")
     field = rule.check["field"]
     threshold = float(rule.check["threshold"])
     policy = rule.check.get("severity_policy", {})
@@ -188,7 +209,7 @@ def _check_attribute_max(rule: Rule, plan: Plan):
             continue
         if value > threshold:
             sev, metrics = _classify_above_max(value, threshold, policy)
-            violations.append(Violation(rule.rule_id, rule.title, sev, [item.feature_id], round(value,3), threshold, rule.message.get("ru", rule.title), rule.refs, {"field":field, **metrics}))
+            violations.append(Violation(rule.rule_id, rule.title, sev, [item.feature_id], round(value, 3), threshold, rule.message.get("ru", rule.title), rule.refs, {"field": field, **metrics}))
     if missing and not violations:
         return _insufficient(rule, f"Не хватает атрибута {field}")
     return _failed(rule, violations) if violations else _passed(rule)
@@ -196,7 +217,7 @@ def _check_attribute_max(rule: Rule, plan: Plan):
 def _check_area_min(rule: Rule, plan: Plan):
     items = _select_features(plan, rule.scope)
     if not items:
-        return _insufficient(rule, "Нет объектов для проверки площади")
+        return _not_applicable(rule, "В плане отсутствуют объекты целевого слоя")
     threshold = float(rule.check["threshold"])
     policy = rule.check.get("severity_policy", {})
     violations = []
@@ -204,16 +225,16 @@ def _check_area_min(rule: Rule, plan: Plan):
         value = float(item.geometry.area)
         if value < threshold:
             sev, metrics = _classify_below_min(value, threshold, policy)
-            violations.append(Violation(rule.rule_id, rule.title, sev, [item.feature_id], round(value,3), threshold, rule.message.get("ru", rule.title), rule.refs, {"field":"area", **metrics}))
+            violations.append(Violation(rule.rule_id, rule.title, sev, [item.feature_id], round(value, 3), threshold, rule.message.get("ru", rule.title), rule.refs, {"field": "area", **metrics}))
     return _failed(rule, violations) if violations else _passed(rule)
 
 def _check_area_ratio_min(rule: Rule, plan: Plan):
     scope_items = _select_features(plan, rule.scope)
     target_items = _select_features(plan, rule.check["target"])
     if not scope_items:
-        return _insufficient(rule, "Нет объектов для расчета доли")
+        return _not_applicable(rule, "В плане отсутствуют объекты числителя для расчета доли")
     if not target_items:
-        return _insufficient(rule, "Нет базовой территории для расчета доли")
+        return _not_applicable(rule, "В плане отсутствует базовая территория для расчета доли")
     base_area = sum(float(x.geometry.area) for x in target_items)
     if base_area <= 0:
         return _insufficient(rule, "Некорректная площадь базовой территории")
@@ -222,31 +243,37 @@ def _check_area_ratio_min(rule: Rule, plan: Plan):
     policy = rule.check.get("severity_policy", {})
     if value < threshold:
         sev, metrics = _classify_below_min(value, threshold, policy)
-        v = Violation(rule.rule_id, rule.title, sev, [x.feature_id for x in scope_items], round(value,4), threshold, rule.message.get("ru", rule.title), rule.refs, {"field":"area_ratio", **metrics})
+        v = Violation(rule.rule_id, rule.title, sev, [x.feature_id for x in scope_items], round(value, 4), threshold, rule.message.get("ru", rule.title), rule.refs, {"field": "area_ratio", **metrics})
         return _failed(rule, [v])
     return _passed(rule)
 
 def _check_range_distance_to_layer(rule: Rule, plan: Plan):
     scope_items = _select_features(plan, rule.scope)
     target_items = _select_features(plan, rule.check["target"])
-    if not scope_items or not target_items:
-        return _insufficient(rule, "Недостаточно данных для проверки диапазона")
+    if not scope_items:
+        return _not_applicable(rule, "В плане отсутствуют объекты области проверки")
+    if not target_items:
+        return _not_applicable(rule, "В плане отсутствует целевой слой для сравнения")
     min_t = float(rule.check["min"]); max_t = float(rule.check["max"])
     policy = rule.check.get("severity_policy", {})
     violations = []
     for item in scope_items:
-        nearest = min(target_items, key=lambda other: _distance(item, other))
+        nearest = _nearest_valid_target(item, target_items, rule)
+        if nearest is None:
+            continue
         value = _distance(item, nearest)
         if value < min_t:
             sev, metrics = _classify_below_min(value, min_t, policy)
-            violations.append(Violation(rule.rule_id, rule.title, sev, [item.feature_id, nearest.feature_id], round(value,3), f"{min_t}..{max_t}", rule.message.get("ru", rule.title), rule.refs, {"range_side":"below", **metrics}))
+            violations.append(Violation(rule.rule_id, rule.title, sev, [item.feature_id, nearest.feature_id], round(value, 3), f"{min_t}..{max_t}", rule.message.get("ru", rule.title), rule.refs, {"range_side": "below", **metrics}))
         elif value > max_t:
             sev, metrics = _classify_above_max(value, max_t, policy)
-            violations.append(Violation(rule.rule_id, rule.title, sev, [item.feature_id, nearest.feature_id], round(value,3), f"{min_t}..{max_t}", rule.message.get("ru", rule.title), rule.refs, {"range_side":"above", **metrics}))
+            violations.append(Violation(rule.rule_id, rule.title, sev, [item.feature_id, nearest.feature_id], round(value, 3), f"{min_t}..{max_t}", rule.message.get("ru", rule.title), rule.refs, {"range_side": "above", **metrics}))
     return _failed(rule, violations) if violations else _passed(rule)
 
 def _check_max_distance_between_features(rule: Rule, plan: Plan):
     items = _select_features(plan, rule.scope)
+    if len(items) == 0:
+        return _not_applicable(rule, "В плане отсутствуют объекты целевого слоя")
     if len(items) < 2:
         return _insufficient(rule, "Недостаточно объектов для проверки расстояния")
     threshold = float(rule.check["threshold"])
@@ -254,12 +281,19 @@ def _check_max_distance_between_features(rule: Rule, plan: Plan):
     violations = []
     for item in items:
         others = [x for x in items if x.feature_id != item.feature_id]
-        nearest = min(others, key=lambda other: _distance(item, other))
+        filtered = []
+        for other in others:
+            if rule.ignore_if.get("intersects") and item.geometry.intersects(other.geometry):
+                continue
+            filtered.append(other)
+        if not filtered:
+            continue
+        nearest = min(filtered, key=lambda other: _distance(item, other))
         value = _distance(item, nearest)
         if value > threshold:
             sev, metrics = _classify_above_max(value, threshold, policy)
             pair = sorted([item.feature_id, nearest.feature_id])
-            violations.append(Violation(rule.rule_id, rule.title, sev, pair, round(value,3), threshold, rule.message.get("ru", rule.title), rule.refs, metrics))
+            violations.append(Violation(rule.rule_id, rule.title, sev, pair, round(value, 3), threshold, rule.message.get("ru", rule.title), rule.refs, metrics))
     dedup, seen = [], set()
     for v in violations:
         key = tuple(v.feature_ids)
@@ -303,6 +337,7 @@ def validate_plan(plan: Plan, rules: list[Rule]) -> dict[str, Any]:
             "warnings": len([x for x in violations if x.severity == "warning"]),
             "errors": len([x for x in violations if x.severity == "error"]),
             "insufficient_data": len([x for x in rule_results if x.status == "insufficient_data"]),
+            "not_applicable": len([x for x in rule_results if x.status == "not_applicable"]),
             "passed": len([x for x in rule_results if x.status == "passed"]),
             "violated_rules": len([x for x in rule_results if x.status == "violated"]),
         },

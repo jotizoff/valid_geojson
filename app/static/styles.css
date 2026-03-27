@@ -32,3 +32,7 @@
 .clickable-row{cursor:pointer;transition:background .12s ease}
 .clickable-row:hover td{background:#f8fafc}
 .clickable-row:active td{background:#eef2ff}
+
+
+.value-na{color:#475569}
+.badge.na{color:#475569;border-color:#cbd5e1;background:#f8fafc}

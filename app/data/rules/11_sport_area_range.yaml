@@ -9,10 +9,10 @@ check:
   type: range_distance_to_layer
   target:
     layer: building
-  min: 10
-  max: 40
+  min: 8
+  max: 45
   severity_policy:
-    warning_threshold_percent: 10
+    warning_threshold_percent: 20
 message:
   ru: "Спортивная площадка расположена вне допустимого диапазона расстояний"
 meta:

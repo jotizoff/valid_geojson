@@ -9,9 +9,9 @@ check:
   type: area_ratio_min
   target:
     layer: site_boundary
-  threshold: 0.25
+  threshold: 0.15
   severity_policy:
-    warning_threshold_percent: 10
+    warning_threshold_percent: 20
 message:
   ru: "Доля озеленения ниже нормативной"
 meta:

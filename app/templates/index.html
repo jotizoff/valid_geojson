@@ -31,6 +31,7 @@
             <div class="stat"><div class="label">Warnings</div><div id="warningsCount" class="value value-warning">0</div></div>
             <div class="stat"><div class="label">Errors</div><div id="errorsCount" class="value value-error">0</div></div>
             <div class="stat"><div class="label">Мало данных</div><div id="insufficientCount" class="value value-muted">0</div></div>
+            <div class="stat"><div class="label">Не применимо</div><div id="notApplicableCount" class="value value-na">0</div></div>
             <div class="stat"><div class="label">Пройдено</div><div id="passedCount" class="value value-ok">0</div></div>
           </div>
           <div id="layersList" class="list"></div>
@@ -88,6 +89,8 @@
           <div class="legend">
             <span class="badge warning">warning</span>
             <span class="badge error">error</span>
+            <span class="badge insufficient_data">insufficient_data</span>
+            <span class="badge na">not_applicable</span>
           </div>
           <div class="table-wrap"><table>
             <thead>
@@ -102,6 +105,12 @@
               </tr>
             </thead>
             <tbody id="violationsTableBody"><tr><td colspan="7">Пока нет данных.</td></tr></tbody>
+          </table></div>
+          <div class="table-wrap table-wrap-secondary"><table>
+            <thead>
+              <tr><th>Status</th><th>Rule</th><th>Причина/статус</th></tr>
+            </thead>
+            <tbody id="statusTableBody"><tr><td colspan="3">Пока нет данных.</td></tr></tbody>
           </table></div>
         </div>
       </section>

@@ -6,6 +6,7 @@ const $ = (id)=>document.getElementById(id);
 const planEditor=$("planEditor");
 const rulesEditor=$("rulesEditor");
 const violationsTableBody=$("violationsTableBody");
+const statusTableBody=$("statusTableBody");
 const batchResultsBody=$("batchResultsBody");
 
 const applicableRulesCount=$("applicableRulesCount");
@@ -13,6 +14,7 @@ const violationsCount=$("violationsCount");
 const warningsCount=$("warningsCount");
 const errorsCount=$("errorsCount");
 const insufficientCount=$("insufficientCount");
+const notApplicableCount=$("notApplicableCount");
 const passedCount=$("passedCount");
 
 const layersList=$("layersList");
@@ -41,11 +43,11 @@ function badgeClass(x){
   if(x==="error") return "error";
   if(x==="warning") return "warning";
   if(x==="insufficient_data") return "insufficient_data";
+  if(x==="not_applicable") return "na";
   return "ok";
 }
-function severityBadge(severity){
-  return `<span class="badge ${badgeClass(severity)}">${severity}</span>`;
-}
+function severityBadge(severity){ return `<span class="badge ${badgeClass(severity)}">${severity}</span>`; }
+
 async function apiFetch(url, options){
   const res = await fetch(url, options);
   const text = await res.text();
@@ -54,6 +56,7 @@ async function apiFetch(url, options){
   if(!res.ok){ throw new Error(data?.detail || text || `HTTP ${res.status}`); }
   return data ?? text;
 }
+
 function parseRulesPreview(yamlText){
   const blocks=yamlText.split(/\n(?=- id:|^id:)/gm).map(x=>x.trim()).filter(Boolean);
   return blocks.map((block)=>{
@@ -82,13 +85,11 @@ function openErrorFocusModal(violation){
   const title = `${violation.title} (${violation.rule_id})`;
   const titleEl = $("errorFocusTitle");
   if(titleEl) titleEl.textContent = title;
-
   const objText = (violation.feature_ids || []).join(", ") || "—";
   const fact = String(violation.value ?? "—");
   const norm = String(violation.threshold ?? "—");
   const dev = violation.details?.deviation_percent != null ? `${violation.details.deviation_percent}%` : "—";
   const msg = violation.message || "Описание ошибки отсутствует.";
-
   if(errorFocusMeta){
     errorFocusMeta.innerHTML =
       `<span class="focus-note-strong">Описание:</span> ${msg}<br>` +
@@ -98,7 +99,6 @@ function openErrorFocusModal(violation){
       `<span class="focus-note-strong">Отклонение:</span> ${dev}<br>` +
       `<span class="focus-note-strong">Severity:</span> ${violation.severity}`;
   }
-
   renderErrorFocusVisual(violation);
   errorFocusModal.classList.remove("hidden");
   errorFocusModal.setAttribute("aria-hidden", "false");
@@ -114,21 +114,17 @@ function setBatchMode(enabled) {
   const batchTab = document.querySelector('.tab[data-tab="batch"]');
   if(batchTab) batchTab.style.display = enabled ? "block" : "none";
   if(batchSidebar) batchSidebar.style.display = enabled ? "block" : "none";
-
   document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
   document.querySelectorAll(".tab-panel").forEach(x => x.classList.remove("active"));
-
   if (enabled) {
     if(batchTab) batchTab.classList.add("active");
-    const panel = $("tab-batch");
-    if(panel) panel.classList.add("active");
+    $("tab-batch")?.classList.add("active");
   } else {
-    const planTab = document.querySelector('.tab[data-tab="plan"]');
-    if(planTab) planTab.classList.add("active");
-    const panel = $("tab-plan");
-    if(panel) panel.classList.add("active");
+    document.querySelector('.tab[data-tab="plan"]')?.classList.add("active");
+    $("tab-plan")?.classList.add("active");
   }
 }
+
 function refreshRulesSidebar(){
   if(!rulesList || !rulesEditor) return;
   const q=ruleSearch?.value.trim().toLowerCase() || "";
@@ -157,60 +153,66 @@ function refreshRulesSidebar(){
     rulesList.appendChild(div);
   });
 }
+
 function refreshValidation(){
   const v=state.validation;
+  applicableRulesCount.textContent=String(v?.applicable_rules?.length || 0);
+  violationsCount.textContent=String(v?.violations?.length || 0);
+  warningsCount.textContent=String(v?.summary?.warnings || 0);
+  errorsCount.textContent=String(v?.summary?.errors || 0);
+  insufficientCount.textContent=String(v?.summary?.insufficient_data || 0);
+  notApplicableCount.textContent=String(v?.summary?.not_applicable || 0);
+  passedCount.textContent=String(v?.summary?.passed || 0);
 
-  if(applicableRulesCount) applicableRulesCount.textContent=String(v?.applicable_rules?.length || 0);
-  if(violationsCount) violationsCount.textContent=String(v?.violations?.length || 0);
-  if(warningsCount) warningsCount.textContent=String(v?.summary?.warnings || 0);
-  if(errorsCount) errorsCount.textContent=String(v?.summary?.errors || 0);
-  if(insufficientCount) insufficientCount.textContent=String(v?.summary?.insufficient_data || 0);
-  if(passedCount) passedCount.textContent=String(v?.summary?.passed || 0);
+  layersList.innerHTML="";
+  (v?.layers || []).forEach(layer=>{
+    const div=document.createElement("div");
+    div.className="list-item";
+    div.innerHTML=`<div>${layer}</div><div class="muted">layer</div>`;
+    layersList.appendChild(div);
+  });
 
-  if(layersList){
-    layersList.innerHTML="";
-    (v?.layers || []).forEach(layer=>{
-      const div=document.createElement("div");
-      div.className="list-item";
-      div.innerHTML=`<div>${layer}</div><div class="muted">layer</div>`;
-      layersList.appendChild(div);
+  violationsTableBody.innerHTML = (!v || !v.violations?.length)
+    ? '<tr><td colspan="7">Нарушений нет или проверка ещё не запускалась.</td></tr>'
+    : v.violations.map((x, idx)=>`<tr class="clickable-row" data-violation-idx="${idx}" title="Нажмите для просмотра на плане">
+        <td>${severityBadge(x.severity)}</td>
+        <td><strong>${x.title}</strong><div class="muted">${x.rule_id}</div></td>
+        <td>${(x.feature_ids||[]).join(", ")}</td>
+        <td>${String(x.value ?? "—")}</td>
+        <td>${String(x.threshold ?? "—")}</td>
+        <td>${x.details?.deviation_percent ?? "-"}%</td>
+        <td>${x.message || x.details?.reason || "-"}</td>
+      </tr>`).join("");
+
+  if(v?.violations?.length){
+    violationsTableBody.querySelectorAll("tr[data-violation-idx]").forEach(row=>{
+      row.addEventListener("click", ()=>{
+        const idx = Number(row.getAttribute("data-violation-idx"));
+        openErrorFocusModal(v.violations[idx]);
+      });
     });
   }
 
-  if(violationsTableBody){
-    violationsTableBody.innerHTML = (!v || !v.violations?.length)
-      ? '<tr><td colspan="7">Нарушений нет или проверка ещё не запускалась.</td></tr>'
-      : v.violations.map((x, idx)=>`<tr class="clickable-row" data-violation-idx="${idx}" title="Нажмите для просмотра на плане">
-          <td>${severityBadge(x.severity)}</td>
-          <td><strong>${x.title}</strong><div class="muted">${x.rule_id}</div></td>
-          <td>${(x.feature_ids||[]).join(", ")}</td>
-          <td>${String(x.value ?? "—")}</td>
-          <td>${String(x.threshold ?? "—")}</td>
-          <td>${x.details?.deviation_percent ?? "-"}%</td>
-          <td>${x.message || x.details?.reason || "-"}</td>
-        </tr>`).join("");
-
-    if(v?.violations?.length){
-      violationsTableBody.querySelectorAll("tr[data-violation-idx]").forEach(row=>{
-        row.addEventListener("click", ()=>{
-          const idx = Number(row.getAttribute("data-violation-idx"));
-          openErrorFocusModal(v.violations[idx]);
-        });
-      });
-    }
-  }
+  statusTableBody.innerHTML = (!v || !v.rule_results?.length)
+    ? '<tr><td colspan="3">Пока нет данных.</td></tr>'
+    : v.rule_results
+        .filter(x => x.status === "not_applicable" || x.status === "insufficient_data")
+        .map(x => `<tr>
+            <td>${severityBadge(x.status)}</td>
+            <td><strong>${x.title}</strong><div class="muted">${x.rule_id}</div></td>
+            <td>${x.reason || "-"}</td>
+          </tr>`).join("") || '<tr><td colspan="3">Нет неприменимых правил и правил с недостатком данных.</td></tr>';
 
   refreshRulesSidebar();
   renderVisual();
 }
+
 function refreshBatchList(){
-  if(!batchPlansList) return;
   batchPlansList.innerHTML = state.batchPlans.length
     ? state.batchPlans.map(p=>`<div class="list-item"><div class="rule-title">${p.name}</div><div class="muted">${(p.plan_geojson_text.length/1024).toFixed(1)} KB</div></div>`).join("")
     : '<div class="list-item"><div class="muted">Планы ещё не загружены</div></div>';
 }
 function refreshBatchResults(){
-  if(!batchResultsBody) return;
   const reports = state.batchReports?.reports || [];
   batchResultsBody.innerHTML = reports.length
     ? reports.map(r=>`<tr><td><strong>${r.input_name}</strong></td><td>${r.summary.warnings}</td><td>${r.summary.errors}</td><td>${r.summary.insufficient_data}</td><td>${r.summary.passed}</td><td>${r.violations.length}</td></tr>`).join("")
@@ -248,7 +250,7 @@ function renderVisual(){
   try{
     const data = JSON.parse(planEditor.value);
     const feats = data.features || [];
-    if(!feats.length){ visualContainer.innerHTML='<div class="muted">Нет объектов для визуализации.</div>'; if(highlightSummary) highlightSummary.textContent='Нет объектов.'; return; }
+    if(!feats.length){ visualContainer.innerHTML='<div class="muted">Нет объектов для визуализации.</div>'; highlightSummary.textContent='Нет объектов.'; return; }
     const pts=[];
     feats.forEach(f=>{ const g=f.geometry||{}; if(g.type==="Polygon"){(g.coordinates[0]||[]).forEach(p=>pts.push(p));} else if(g.type==="LineString"){(g.coordinates||[]).forEach(p=>pts.push(p));}});
     if(!pts.length){ visualContainer.innerHTML='<div class="muted">Нет поддерживаемой геометрии.</div>'; return; }
@@ -258,7 +260,7 @@ function renderVisual(){
     const scale=Math.min((svgW-2*pad)/w,(svgH-2*pad)/h);
     const tx=x=>pad+(x-minX)*scale, ty=y=>svgH-pad-(y-minY)*scale;
     const highlightMap=buildHighlightMap();
-    if(highlightSummary) highlightSummary.textContent = highlightMap.size ? `Подсвечено объектов: ${highlightMap.size}. Красный = error, жёлтый = warning.` : 'Нарушивших объектов пока нет.';
+    highlightSummary.textContent = highlightMap.size ? `Подсвечено объектов: ${highlightMap.size}. Красный = error, жёлтый = warning.` : 'Нарушивших объектов пока нет.';
     const parts=feats.map(f=>{
       const layer=f.properties?.layer||'unknown', fid=f.properties?.id||f.id||'', sev=highlightMap.get(fid), g=f.geometry||{}, style=layerStyle(layer);
       let extra='';
@@ -280,7 +282,7 @@ function renderVisual(){
     visualContainer.innerHTML=`<svg class="visual-svg" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">${parts}</svg>`;
   }catch(e){
     visualContainer.innerHTML=`<div class="muted">Ошибка визуализации: ${e.message}</div>`;
-    if(highlightSummary) highlightSummary.textContent='Не удалось построить визуализацию.';
+    highlightSummary.textContent='Не удалось построить визуализацию.';
   }
 }
 function renderErrorFocusVisual(violation){
@@ -301,9 +303,7 @@ function renderErrorFocusVisual(violation){
     const parts=feats.map(f=>{
       const layer=f.properties?.layer||'unknown', fid=f.properties?.id||f.id||'', g=f.geometry||{}, style=layerStyle(layer);
       const focused = focusIds.has(fid);
-      const outline = focused
-        ? (violation.severity==="error" ? 'stroke:#dc2626;stroke-width:7' : 'stroke:#f59e0b;stroke-width:7')
-        : '';
+      const outline = focused ? (violation.severity==="error" ? 'stroke:#dc2626;stroke-width:7' : 'stroke:#f59e0b;stroke-width:7') : '';
       const opacity = focused ? 1 : 0.35;
       if(g.type==="Polygon"){
         const coords=g.coordinates[0]||[];
@@ -326,8 +326,8 @@ function renderErrorFocusVisual(violation){
 
 async function loadDemo(){
   const data=await apiFetch("/api/demo");
-  if(planEditor) planEditor.value=data.plan_geojson_text;
-  if(rulesEditor) rulesEditor.value=data.rules_yaml_text;
+  planEditor.value=data.plan_geojson_text;
+  rulesEditor.value=data.rules_yaml_text;
   state.validation=null;
   refreshRulesSidebar();
   refreshValidation();
@@ -337,7 +337,7 @@ async function validate(){
   state.validation=await apiFetch("/api/validate",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({plan_geojson_text:planEditor?.value || "",rules_yaml_text:rulesEditor?.value || ""})
+    body:JSON.stringify({plan_geojson_text:planEditor.value || "",rules_yaml_text:rulesEditor.value || ""})
   });
   refreshValidation();
 }
@@ -346,7 +346,7 @@ async function runBatch(){
   state.batchReports=await apiFetch("/api/batch-validate",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({plans:state.batchPlans,rules_yaml_text:rulesEditor?.value || ""})
+    body:JSON.stringify({plans:state.batchPlans,rules_yaml_text:rulesEditor.value || ""})
   });
   refreshBatchResults();
 }
@@ -364,25 +364,22 @@ function setupTabs(){
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
     document.querySelectorAll(".tab-panel").forEach(x=>x.classList.remove("active"));
     btn.classList.add("active");
-    const panel = $(`tab-${target}`);
-    if(panel) panel.classList.add("active");
+    document.getElementById(`tab-${target}`)?.classList.add("active");
     if(target==="visual") renderVisual();
   }));
 }
 function setupPlanUpload(){
-  if(!$("uploadPlanBtn") || !planFileInput) return;
-  $("uploadPlanBtn").addEventListener("click",e=>{e.preventDefault(); planFileInput.click();});
-  planFileInput.addEventListener("change",event=>{
+  $("uploadPlanBtn")?.addEventListener("click",e=>{e.preventDefault(); planFileInput.click();});
+  planFileInput?.addEventListener("change",event=>{
     const file=event.target.files?.[0]; if(!file) return;
     const reader=new FileReader();
-    reader.onload=()=>{ if(planEditor) planEditor.value=String(reader.result||""); state.validation=null; refreshValidation(); renderVisual();};
+    reader.onload=()=>{ planEditor.value=String(reader.result||""); state.validation=null; refreshValidation(); renderVisual(); };
     reader.readAsText(file,"utf-8");
   });
 }
 function setupBatchUpload(){
-  if(!$("uploadBatchBtn") || !batchPlanInput) return;
-  $("uploadBatchBtn").addEventListener("click",e=>{e.preventDefault(); batchPlanInput.click();});
-  batchPlanInput.addEventListener("change",async event=>{
+  $("uploadBatchBtn")?.addEventListener("click",e=>{e.preventDefault(); batchPlanInput.click();});
+  batchPlanInput?.addEventListener("change",async event=>{
     const files=Array.from(event.target.files||[]);
     const loaded=await Promise.all(files.map(file=>new Promise(resolve=>{
       const reader=new FileReader();
@@ -400,23 +397,14 @@ $("runBatchBtn")?.addEventListener("click",()=>runBatch().catch(err=>alert(err.m
 $("downloadReportBtn")?.addEventListener("click",downloadReport);
 $("openBatchBtn")?.addEventListener("click",()=>setBatchMode(true));
 $("exitBatchBtn")?.addEventListener("click",()=>setBatchMode(false));
-
 closeRuleModalBtn?.addEventListener("click", closeRuleModal);
 ruleModalBackdrop?.addEventListener("click", closeRuleModal);
 closeErrorFocusBtn?.addEventListener("click", closeErrorFocusModal);
 errorFocusBackdrop?.addEventListener("click", closeErrorFocusModal);
-
-document.addEventListener("keydown", (e)=>{
-  if(e.key === "Escape"){
-    closeRuleModal();
-    closeErrorFocusModal();
-  }
-});
-
+document.addEventListener("keydown", (e)=>{ if(e.key === "Escape"){ closeRuleModal(); closeErrorFocusModal(); } });
 ruleSearch?.addEventListener("input",refreshRulesSidebar);
 categoryFilter?.addEventListener("change",refreshRulesSidebar);
-planEditor?.addEventListener("input",()=>{if($("tab-visual")?.classList.contains("active")) renderVisual();});
-
+planEditor?.addEventListener("input",()=>{if(document.getElementById("tab-visual")?.classList.contains("active")) renderVisual();});
 setupTabs();
 setupPlanUpload();
 setupBatchUpload();

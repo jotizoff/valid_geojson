@@ -9,9 +9,9 @@ check:
   type: max_distance_to_layer
   target:
     layer: network
-  threshold: 20
+  threshold: 30
   severity_policy:
-    warning_threshold_percent: 20
+    warning_threshold_percent: 25
 message:
   ru: "Здание слишком далеко от инженерных сетей"
 meta:
